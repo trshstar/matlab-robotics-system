@@ -1,18 +1,30 @@
 % main.m
 % Entry point for Phase 1 - Differential Drive Simulation
 
-addpath(genpath(pwd));  % Add all folders to MATLAB path
+addpath(genpath(pwd));
 
-params = robot_params();  % Load config
-pose = [0 0 0];           % Initial [x y theta]
+% Load configs
+params  = robot_params();
+sensor  = sensor_params();
+
+% Initial setup
+map  = zeros(sensor.map.size);
+map(40:60,70:72)=1;  % sample obstacles
+map(20:25,20:40)=1;
+
+pose = [2 2 0];
 t = 0:params.sampleTime:params.simTime;
 
-poses = zeros(length(t),3);
-poses(1,:) = pose;
-
-for i = 2:length(t)
+for i=1:length(t)
+    % --- Motion ---
     pose = kinematics_model(pose, params.wL, params.wR, params);
-    poses(i,:) = pose;
-end
 
-visualize_trajectory(poses);
+    % --- Sensing ---
+    ranges = lidar_sim(pose, map, sensor);
+
+    % --- Mapping ---
+    map = occupancy_map(map, pose, ranges, sensor);
+
+    % --- Visualization ---
+    visualize_map(map, pose, ranges, sensor);
+end
