@@ -2,29 +2,19 @@
 % Entry point for Phase 1 - Differential Drive Simulation
 
 addpath(genpath(pwd));
+params = robot_params();
+sensor = sensor_params();
+ctrl   = controller_params();
 
-% Load configs
-params  = robot_params();
-sensor  = sensor_params();
+map = zeros(sensor.map.size);
+map(40:60,70:72)=1; map(20:25,20:40)=1;
+start = [2 2]/sensor.map.resolution;
+goal  = [80 80]/sensor.map.resolution;
 
-% Initial setup
-map  = zeros(sensor.map.size);
-map(40:60,70:72)=1;  % sample obstacles
-map(20:25,20:40)=1;
+path = astar_planner(map, start, goal);
+traj = trajectory_planner(path, sensor);
 
 pose = [2 2 0];
-t = 0:params.sampleTime:params.simTime;
+pose = navigation_loop(pose, traj, ctrl, params);
 
-for i=1:length(t)
-    % --- Motion ---
-    pose = kinematics_model(pose, params.wL, params.wR, params);
-
-    % --- Sensing ---
-    ranges = lidar_sim(pose, map, sensor);
-
-    % --- Mapping ---
-    map = occupancy_map(map, pose, ranges, sensor);
-
-    % --- Visualization ---
-    visualize_map(map, pose, ranges, sensor);
-end
+visualize_map(map, pose, [], sensor); 
